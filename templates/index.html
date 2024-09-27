@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Stock Analysis App</title>
-    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>  <!-- Plotly.js CDN -->
 </head>
 <body>
@@ -17,6 +17,11 @@
     </form>
 
     <div id="plot"></div>  <!-- Placeholder for the Plotly graph -->
+
+    <h2>Stock Information</h2>
+    <ul id="stock-info">
+        <!-- Stock info will be dynamically inserted here -->
+    </ul>
 
     <script>
         document.getElementById('stock-form').onsubmit = async function(e) {
@@ -32,13 +37,14 @@
             const result = await response.json();
 
             if (response.ok) {
-                plotStockData(result.dates, result.closing_prices);
+                plotStockData(result.dates, result.closing_prices, result.company_name);
+                displayStockInfo(result.dates, result.open_prices, result.high_prices, result.low_prices, result.volumes, result.closing_prices);
             } else {
                 alert(result.error);
             }
         };
 
-        function plotStockData(dates, closingPrices) {
+        function plotStockData(dates, closingPrices, companyName) {
             const trace = {
                 x: dates,
                 y: closingPrices,
@@ -47,12 +53,30 @@
             };
 
             const layout = {
-                title: 'Stock Price Trend (Monthly)',
+                title: `Stock Price Trend (Monthly) for ${companyName}`,
                 xaxis: { title: 'Month' },
                 yaxis: { title: 'Price (USD)' }
             };
 
             Plotly.newPlot('plot', [trace], layout);
+        }
+
+        function displayStockInfo(dates, openPrices, highPrices, lowPrices, volumes, closingPrices) {
+            const stockInfoList = document.getElementById('stock-info');
+            stockInfoList.innerHTML = '';  // Clear the previous data
+
+            for (let i = 0; i < dates.length; i++) {
+                const listItem = document.createElement('li');
+                listItem.innerHTML = `
+                    <strong>Date:</strong> ${dates[i]}<br>
+                    <strong>Open:</strong> ${openPrices[i]}<br>
+                    <strong>High:</strong> ${highPrices[i]}<br>
+                    <strong>Low:</strong> ${lowPrices[i]}<br>
+                    <strong>Volume:</strong> ${volumes[i]}<br>
+                    <strong>Close:</strong> ${closingPrices[i]}<br>
+                `;
+                stockInfoList.appendChild(listItem);
+            }
         }
     </script>
 </body>
