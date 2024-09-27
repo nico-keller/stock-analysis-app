@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Analysis App</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>  <!-- Plotly.js CDN -->
+</head>
+<body>
+    <h1>Stock Analysis Application</h1>
+    <form id="stock-form">
+        <label for="symbol">Stock Symbol:</label>
+        <input type="text" id="symbol" name="symbol" value="AAPL">
+
+        <button type="submit">Fetch Monthly Data</button>
+    </form>
+
+    <div id="plot"></div>  <!-- Placeholder for the Plotly graph -->
+
+    <script>
+        document.getElementById('stock-form').onsubmit = async function(e) {
+            e.preventDefault();
+            const symbol = document.getElementById('symbol').value;
+
+            const response = await fetch('/stock-data', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `symbol=${symbol}`
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                plotStockData(result.dates, result.closing_prices);
+            } else {
+                alert(result.error);
+            }
+        };
+
+        function plotStockData(dates, closingPrices) {
+            const trace = {
+                x: dates,
+                y: closingPrices,
+                mode: 'lines+markers',
+                name: 'Monthly Closing Prices'
+            };
+
+            const layout = {
+                title: 'Stock Price Trend (Monthly)',
+                xaxis: { title: 'Month' },
+                yaxis: { title: 'Price (USD)' }
+            };
+
+            Plotly.newPlot('plot', [trace], layout);
+        }
+    </script>
+</body>
+</html>
