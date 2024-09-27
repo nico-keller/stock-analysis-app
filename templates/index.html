@@ -12,39 +12,53 @@
     <form id="stock-form">
         <label for="symbol">Stock Symbol:</label>
         <input type="text" id="symbol" name="symbol" value="AAPL">
-
         <button type="submit">Fetch Monthly Data</button>
     </form>
 
     <div id="plot"></div>  <!-- Placeholder for the Plotly graph -->
 
-    <h2>Stock Information</h2>
-    <ul id="stock-info">
-        <!-- Stock info will be dynamically inserted here -->
-    </ul>
+    <h2>Company Overview</h2>
+    <table id="company-overview-table">
+        <!-- Company overview information will be dynamically inserted here -->
+    </table>
 
     <script>
         document.getElementById('stock-form').onsubmit = async function(e) {
             e.preventDefault();
             const symbol = document.getElementById('symbol').value;
 
-            const response = await fetch('/stock-data', {
+            // Fetch stock data
+            const stockResponse = await fetch('/stock-data', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: `symbol=${symbol}`
             });
 
-            const result = await response.json();
+            const stockResult = await stockResponse.json();
 
-            if (response.ok) {
-                plotStockData(result.dates, result.closing_prices, result.company_name);
-                displayStockInfo(result.dates, result.open_prices, result.high_prices, result.low_prices, result.volumes, result.closing_prices);
+            if (stockResponse.ok) {
+                plotStockData(stockResult.dates, stockResult.closing_prices);
             } else {
-                alert(result.error);
+                alert(stockResult.error);
+            }
+
+            // Fetch company overview
+            const overviewResponse = await fetch('/company-overview', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `symbol=${symbol}`
+            });
+
+            const overviewResult = await overviewResponse.json();
+
+            if (overviewResponse.ok) {
+                displayCompanyOverview(overviewResult);  // Pass the entire overviewResult object
+            } else {
+                alert(overviewResult.error);
             }
         };
 
-        function plotStockData(dates, closingPrices, companyName) {
+        function plotStockData(dates, closingPrices) {
             const trace = {
                 x: dates,
                 y: closingPrices,
@@ -53,7 +67,7 @@
             };
 
             const layout = {
-                title: `Stock Price Trend (Monthly) for ${companyName}`,
+                title: `Stock Price Trend`,
                 xaxis: { title: 'Month' },
                 yaxis: { title: 'Price (USD)' }
             };
@@ -61,22 +75,18 @@
             Plotly.newPlot('plot', [trace], layout);
         }
 
-        function displayStockInfo(dates, openPrices, highPrices, lowPrices, volumes, closingPrices) {
-            const stockInfoList = document.getElementById('stock-info');
-            stockInfoList.innerHTML = '';  // Clear the previous data
-
-            for (let i = 0; i < dates.length; i++) {
-                const listItem = document.createElement('li');
-                listItem.innerHTML = `
-                    <strong>Date:</strong> ${dates[i]}<br>
-                    <strong>Open:</strong> ${openPrices[i]}<br>
-                    <strong>High:</strong> ${highPrices[i]}<br>
-                    <strong>Low:</strong> ${lowPrices[i]}<br>
-                    <strong>Volume:</strong> ${volumes[i]}<br>
-                    <strong>Close:</strong> ${closingPrices[i]}<br>
-                `;
-                stockInfoList.appendChild(listItem);
-            }
+        function displayCompanyOverview(overview) {
+            const companyOverviewTable = document.getElementById('company-overview-table');
+            companyOverviewTable.innerHTML = `
+                <tr><td><strong>Company Name:</strong></td><td>${overview.company_name}</td></tr>
+                <tr><td><strong>Asset Type:</strong></td><td>${overview.asset_type}</td></tr>
+                <tr><td><strong>Exchange:</strong></td><td>${overview.exchange}</td></tr>
+                <tr><td><strong>Country:</strong></td><td>${overview.country}</td></tr>
+                <tr><td><strong>Sector:</strong></td><td>${overview.sector}</td></tr>
+                <tr><td><strong>Industry:</strong></td><td>${overview.industry}</td></tr>
+                <tr><td><strong>Revenue per Share:</strong></td><td>${overview.revenue_per_share}</td></tr>
+                <tr><td><strong>Dividend per Share:</strong></td><td>${overview.dividend_per_share}</td></tr>
+            `;
         }
     </script>
 </body>

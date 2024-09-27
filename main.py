@@ -12,24 +12,6 @@ BASE_URL = data['base_url']
 
 app = Flask(__name__)
 
-
-# Function to fetch the company name using Alpha Vantage's SYMBOL_SEARCH API
-def fetch_company_name(symbol):
-    params = {
-        'function': 'SYMBOL_SEARCH',
-        'keywords': symbol,
-        'apikey': API_KEY
-    }
-
-    response = requests.get(BASE_URL, params=params)
-    data = response.json()
-
-    if 'bestMatches' in data and len(data['bestMatches']) > 0:
-        return data['bestMatches'][0]['2. name']  # Return the first matching company's name
-    else:
-        return "Unknown Company"  # Fallback if no name is found
-
-
 # Function to fetch monthly stock data from Alpha Vantage API
 def fetch_stock_data(symbol):
     params = {
@@ -54,6 +36,17 @@ def fetch_stock_data(symbol):
         print("Error fetching data:", data)
         return None
 
+# Function to fetch company overview data
+def fetch_company_overview(symbol):
+    params = {
+        'function': 'OVERVIEW',
+        'symbol': symbol,
+        'apikey': API_KEY
+    }
+    response = requests.get(BASE_URL, params=params)
+    data = response.json()
+
+    return data
 
 @app.route('/')
 def index():
@@ -67,23 +60,37 @@ def get_stock_data():
     # Fetch stock data
     df = fetch_stock_data(symbol)
 
-    # Fetch the company name using the symbol
-    company_name = fetch_company_name(symbol)
-
     if df is not None:
-        # Convert DataFrame to JSON format and include company name
+        # Convert DataFrame to JSON format and return
         return jsonify({
             'dates': df.index.strftime('%Y-%m-%d').tolist(),
             'closing_prices': df['4. close'].tolist(),
             'open_prices': df['1. open'].tolist(),
             'high_prices': df['2. high'].tolist(),
             'low_prices': df['3. low'].tolist(),
-            'volumes': df['5. volume'].tolist(),
-            'company_name': company_name
+            'volumes': df['5. volume'].tolist()
         })
     else:
         return jsonify({'error': 'Data not available'}), 400
 
+@app.route('/company-overview', methods=['POST'])
+def get_company_overview():
+    symbol = request.form['symbol'].upper()
+    data = fetch_company_overview(symbol)
+
+    if data:
+        return jsonify({
+            'company_name': data.get('Name', 'N/A'),
+            'asset_type': data.get('AssetType', 'N/A'),
+            'exchange': data.get('Exchange', 'N/A'),
+            'country': data.get('Country', 'N/A'),
+            'sector': data.get('Sector', 'N/A'),
+            'industry': data.get('Industry', 'N/A'),
+            'revenue_per_share': data.get('RevenuePerShareTTM', 'N/A'),
+            'dividend_per_share': data.get('DividendPerShare', 'N/A')
+        })
+    else:
+        return jsonify({'error': 'Company Overview not available'}), 400
 
 if __name__ == '__main__':
     app.run(debug=False)
